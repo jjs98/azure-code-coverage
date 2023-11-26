@@ -9,10 +9,12 @@ namespace CodeCoverage.Handler
 {
     public class AzureHandler : IAzureHandler
     {
-        private const int ErrorThreshhold = 30;
-        private const int WarningThreshhold = 70;
-
         private readonly IAzureService _azureService;
+
+        public const string Green = "#4EC820";
+        public const string Yellow = "#ebc63b";
+        public const string Red = "#ed1e45";
+
         public AzureHandler(IAzureService azureService)
         {
             _azureService = azureService;
@@ -23,35 +25,43 @@ namespace CodeCoverage.Handler
             var build = await _azureService.GetLatestBuild(organization, project, definitionId, branchName);
             var coverage = await _azureService.GetCodeCoverage(organization, project, build.Id.ToString());
             var coverageData = coverage.CoverageData.FirstOrDefault()?.CoverageStats.FirstOrDefault();
-            var percentage = CalculatePercentage(coverageData);
+            var percentage = CalculatePercentage(coverageData, 0);
             return percentage.ToString();
         }
 
-        public async Task<string?> GetCodeCoverageAsStatusBadge(string organization, string project, string definitionId, string branchName)
+        public async Task<string?> GetCodeCoverageAsStatusBadge(string organization, string project, string definitionId, string branchName, int decimalPlaces, string? displayName, int errorThreshhold, int warningThreshhold)
         {
             var build = await _azureService.GetLatestBuild(organization, project, definitionId, branchName);
             var coverage = await _azureService.GetCodeCoverage(organization, project, build.Id.ToString());
             var coverageData = coverage.CoverageData.FirstOrDefault()?.CoverageStats.FirstOrDefault();
-            var percentage = CalculatePercentage(coverageData);
-            return FormatSvg(percentage, build.Definition.Name);
+            var percentage = CalculatePercentage(coverageData, decimalPlaces);
+
+            return FormatSvg(percentage, string.IsNullOrWhiteSpace(displayName) ? build.Definition.Name : displayName, errorThreshhold, warningThreshhold);
         }
 
-        private static int CalculatePercentage(CodeCoverageStatistics? statistics)
+        private static decimal CalculatePercentage(CodeCoverageStatistics? statistics, int decimalPlaces)
         {
             decimal percentage = 0;
             if (statistics is not null && statistics.Total > 0)
                 percentage = (decimal)statistics.Covered / (decimal)statistics.Total * (decimal)100;
-            return (int)Math.Round(percentage, 0, MidpointRounding.ToNegativeInfinity);
+            percentage = Math.Round(percentage, decimalPlaces, decimalPlaces == 0 ? MidpointRounding.ToNegativeInfinity : MidpointRounding.ToEven);
+
+            // To make sure there are no decimals for 0 and 100%
+            if (percentage == 100)
+                percentage = 100;
+            if (percentage == 0)
+                percentage = 0;
+            return percentage;
         }
 
-        private static string FormatSvg(int percentage, string definitionName)
+        private static string FormatSvg(decimal percentage, string definitionName, int errorThreshhold, int warningThreshhold)
         {
-            var fillColor = "#4EC820";
+            var fillColor = Green;
 
-            if (percentage < ErrorThreshhold && percentage >= 0)
-                fillColor = "#ed1e45";
-            if (percentage < WarningThreshhold && percentage >= ErrorThreshhold)
-                fillColor = "#ebc63b";
+            if (percentage < errorThreshhold && percentage >= 0)
+                fillColor = Red;
+            if (percentage < warningThreshhold && percentage >= errorThreshhold)
+                fillColor = Yellow;
 
             var template = $"""
                 <svg width="180.8" height="20.0" xmlns="http://www.w3.org/2000/svg">
