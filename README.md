@@ -21,6 +21,8 @@ Use it in your README or as an widget in Azure
 ![coverage-pipeline-good](Images/coverage-pipeline-good.png)
 ![coverage-badge-good](Images/coverage-badge-good.png) 
 
+The percentage is rounded down because I don't want the badge to say 100% when in reality it only is 99.99% or something. Maybe in big projects this could lead to confusion. Maybe I will add a parameter for this in the future.
+
 # Deployment
 I use a docker-compose file like this
 
