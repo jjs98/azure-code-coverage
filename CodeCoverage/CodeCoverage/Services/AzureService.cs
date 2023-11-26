@@ -26,9 +26,9 @@ namespace CodeCoverage.Services
             _httpClient = client;
         }
 
-        public async Task<Build> GetLatestBuild(string organization, string project, string pipelineId, string branchName)
+        public async Task<Build> GetLatestBuild(string organization, string project, string definitionId, string branchName)
         {
-            var url = $"https://dev.azure.com/{organization}/{project}/_apis/build/latest/{pipelineId}?branchName={branchName}&api-version=7.2-preview.1";
+            var url = $"https://dev.azure.com/{organization}/{project}/_apis/build/latest/{definitionId}?branchName={branchName}&api-version=7.2-preview.1";
 
             var response = await _httpClient.GetAsync(url);
             response.EnsureSuccessStatusCode();

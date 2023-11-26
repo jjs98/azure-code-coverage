@@ -18,18 +18,18 @@ namespace CodeCoverage.Handler
             _azureService = azureService;
         }
 
-        public async Task<string?> GetCodeCoverageAsPercentage(string organization, string project, string pipelineId, string branchName)
+        public async Task<string?> GetCodeCoverageAsPercentage(string organization, string project, string definitionId, string branchName)
         {
-            var build = await _azureService.GetLatestBuild(organization, project, pipelineId, branchName);
+            var build = await _azureService.GetLatestBuild(organization, project, definitionId, branchName);
             var coverage = await _azureService.GetCodeCoverage(organization, project, build.Id.ToString());
             var coverageData = coverage.CoverageData.FirstOrDefault()?.CoverageStats.FirstOrDefault();
             var percentage = CalculatePercentage(coverageData);
             return percentage.ToString();
         }
 
-        public async Task<string?> GetCodeCoverageAsStatusBadge(string organization, string project, string pipelineId, string branchName)
+        public async Task<string?> GetCodeCoverageAsStatusBadge(string organization, string project, string definitionId, string branchName)
         {
-            var build = await _azureService.GetLatestBuild(organization, project, pipelineId, branchName);
+            var build = await _azureService.GetLatestBuild(organization, project, definitionId, branchName);
             var coverage = await _azureService.GetCodeCoverage(organization, project, build.Id.ToString());
             var coverageData = coverage.CoverageData.FirstOrDefault()?.CoverageStats.FirstOrDefault();
             var percentage = CalculatePercentage(coverageData);
@@ -44,7 +44,7 @@ namespace CodeCoverage.Handler
             return (int)Math.Round(percentage, 0, MidpointRounding.ToNegativeInfinity);
         }
 
-        private static string FormatSvg(int percentage, string pipelineName)
+        private static string FormatSvg(int percentage, string definitionName)
         {
             var fillColor = "#4EC820";
 
@@ -74,8 +74,8 @@ namespace CodeCoverage.Handler
                     </g>
                   </svg>
                   <g fill="#fff" text-anchor="middle" font-family="DejaVu Sans,Verdana,Geneva,sans-serif" font-size="11">
-                    <text x="64.9" y="15.0" fill="#000" fill-opacity="0.3">{pipelineName}</text>
-                    <text x="64.9" y="14.0" fill="#fff">{pipelineName}</text>
+                    <text x="64.9" y="15.0" fill="#000" fill-opacity="0.3">{definitionName}</text>
+                    <text x="64.9" y="14.0" fill="#fff">{definitionName}</text>
                     <text x="145.4" y="15.0" fill="#000" fill-opacity="0.3">{percentage}%</text>
                     <text x="145.4" y="14.0" fill="#fff">{percentage}%</text>
                   </g>
