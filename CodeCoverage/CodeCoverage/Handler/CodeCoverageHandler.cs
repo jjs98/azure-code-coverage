@@ -1,13 +1,12 @@
 ﻿using CodeCoverage.Interfaces.Handler;
 using CodeCoverage.Interfaces.Services;
-using Microsoft.TeamFoundation.TestManagement.WebApi;
 using System;
 using System.Linq;
 using System.Threading.Tasks;
 
 namespace CodeCoverage.Handler
 {
-    public class AzureHandler : IAzureHandler
+    public class CodeCoverageHandler : ICodeCoverageHandler
     {
         private readonly IAzureService _azureService;
 
@@ -15,12 +14,19 @@ namespace CodeCoverage.Handler
         public const string Yellow = "#ebc63b";
         public const string Red = "#ed1e45";
 
-        public AzureHandler(IAzureService azureService)
+        public CodeCoverageHandler(IAzureService azureService)
         {
             _azureService = azureService;
         }
 
-        public async Task<string?> GetCodeCoverageAsPercentage(string organization, string project, string definitionId, string branchName)
+        public async Task<Models.CodeCoverageSummary> GetSummary(string organization, string project, string definitionId, string branchName)
+        {
+            var build = await _azureService.GetLatestBuild(organization, project, definitionId, branchName);
+            var coverage = await _azureService.GetCodeCoverage(organization, project, build.Id.ToString());
+            return coverage;
+        }
+
+        public async Task<string?> GetPercentage(string organization, string project, string definitionId, string branchName)
         {
             var build = await _azureService.GetLatestBuild(organization, project, definitionId, branchName);
             var coverage = await _azureService.GetCodeCoverage(organization, project, build.Id.ToString());
@@ -29,7 +35,7 @@ namespace CodeCoverage.Handler
             return percentage.ToString();
         }
 
-        public async Task<string?> GetCodeCoverageAsStatusBadge(string organization, string project, string definitionId, string branchName, int decimalPlaces, string? displayName, int errorThreshhold, int warningThreshhold)
+        public async Task<string?> GetStatusBadge(string organization, string project, string definitionId, string branchName, int decimalPlaces, string? displayName, int errorThreshhold, int warningThreshhold)
         {
             var build = await _azureService.GetLatestBuild(organization, project, definitionId, branchName);
             var coverage = await _azureService.GetCodeCoverage(organization, project, build.Id.ToString());
@@ -39,7 +45,7 @@ namespace CodeCoverage.Handler
             return FormatSvg(percentage, string.IsNullOrWhiteSpace(displayName) ? build.Definition.Name : displayName, errorThreshhold, warningThreshhold);
         }
 
-        private static decimal CalculatePercentage(CodeCoverageStatistics? statistics, int decimalPlaces)
+        private static decimal CalculatePercentage(Models.CodeCoverageStatistics? statistics, int decimalPlaces)
         {
             decimal percentage = 0;
             if (statistics is not null && statistics.Total > 0)

@@ -18,15 +18,17 @@ namespace CodeCoverage
             // Add services to the container.
             builder.Configuration.AddJsonFile("appsettings.json");
 
-
             builder.Services.AddControllers();
+
             // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
             builder.Services.AddEndpointsApiExplorer();
             builder.Services.AddSwaggerGen();
 
-            var accessToken = builder.Configuration["Settings:AzureToken"];
-            builder.Services.AddSingleton<IAzureService>(new AzureService(accessToken));
-            builder.Services.AddScoped<IAzureHandler, AzureHandler>();
+            var accessToken = builder.Configuration["Settings:AzureTokenAll"];
+            builder.Services.AddSingleton<IHttpService>(new HttpService(accessToken));
+            builder.Services.AddScoped<IAzureService, AzureService>();
+            builder.Services.AddScoped<ICodeCoverageHandler, CodeCoverageHandler>();
+            builder.Services.AddScoped<IPullRequestsHandler, PullRequestsHandler>();
 
             var app = builder.Build();
 
@@ -40,7 +42,6 @@ namespace CodeCoverage
             app.UseHttpsRedirection();
 
             app.UseAuthorization();
-
 
             app.MapControllers();
 

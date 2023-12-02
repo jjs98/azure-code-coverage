@@ -1,29 +1,45 @@
 using CodeCoverage.Interfaces.Handler;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using System.Threading.Tasks;
 
 namespace CodeCoverage.Controllers
 {
     [ApiController]
-    [Route("api/[controller]/{organization}/{project}/{definitionId}")]
+    [Route("api/{organization}/{project}/{definitionId}/[controller]")]
     public class CodeCoverageController : ControllerBase
     {
-        private readonly IAzureHandler _azureHandler;
-        public CodeCoverageController(IAzureHandler azureHandler)
+        private readonly ICodeCoverageHandler _codeCoverageHandler;
+        public CodeCoverageController(ICodeCoverageHandler codeCoverageHandler)
         {
-            _azureHandler = azureHandler;
+            _codeCoverageHandler = codeCoverageHandler;
         }
 
-        [HttpGet]
-        public async Task<IActionResult> GetCoveragePercentage(string organization, string project, string definitionId, string branchName)
+        [HttpGet()]
+        [Produces("application/json", Type = typeof(Models.CodeCoverageSummary))]
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        public async Task<ActionResult<Models.CodeCoverageSummary>> GetSummary(string organization, string project, string definitionId, string branchName)
         {
-            var coverage = await _azureHandler.GetCodeCoverageAsPercentage(organization, project, definitionId, branchName);
+            var coverage = await _codeCoverageHandler.GetSummary(organization, project, definitionId, branchName);
             return coverage is null ? NotFound() : Ok(coverage);
         }
 
-        [HttpGet]
-        [Route("Status")]
-        public async Task<IActionResult> GetCoverageStatus(string organization, string project, string definitionId, string branchName = "main", int decimalPlaces = 0, string? displayName = default, int errorThreshhold = 30, int warningThreshhold = 70)
+        [HttpGet("percentage")]
+        [Produces("application/json", Type = typeof(string))]
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        public async Task<IActionResult> GetPercentage(string organization, string project, string definitionId, string branchName)
+        {
+            var coverage = await _codeCoverageHandler.GetPercentage(organization, project, definitionId, branchName);
+            return coverage is null ? NotFound() : Ok(coverage);
+        }
+
+        [HttpGet("status")]
+        [Produces("image/svg+xml; charset=utf-8", Type = typeof(string))]
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        public async Task<IActionResult> GetStatus(string organization, string project, string definitionId, string branchName = "main", int decimalPlaces = 0, string? displayName = default, int errorThreshhold = 30, int warningThreshhold = 70)
         {
             if (decimalPlaces < 0)
                 return BadRequest("Invalid decimalPlaces");
@@ -34,9 +50,19 @@ namespace CodeCoverage.Controllers
             if (warningThreshhold <= errorThreshhold)
                 return BadRequest("errorThreshhold must be greater than warningThreshhold");
 
-            var svg = await _azureHandler.GetCodeCoverageAsStatusBadge(organization, project, definitionId, branchName, decimalPlaces, displayName, errorThreshhold, warningThreshhold);
+            var svg = await _codeCoverageHandler.GetStatusBadge(organization, project, definitionId, branchName, decimalPlaces, displayName, errorThreshhold, warningThreshhold);
             return svg is null ? NotFound() : Content(svg, "image/svg+xml; charset=utf-8");
             ;
+        }
+
+        [HttpPost()]
+        [Produces("application/json", Type = typeof(string))]
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        public async Task<IActionResult> PostCoverageStatistics(string organization, string project, string definitionId, string branchName)
+        {
+            var coverage = await _codeCoverageHandler.GetPercentage(organization, project, definitionId, branchName);
+            return coverage is null ? NotFound() : Ok(coverage);
         }
     }
 }
